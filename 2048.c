@@ -89,7 +89,7 @@ void drawBoard(uint8_t board[SIZE][SIZE], uint8_t scheme, uint32_t score)
 		printf("\n");
 	}
 	printf("\n");
-	printf("        ←,↑,→,↓ or q        \n");
+	printf("       ←,↑,→,↓,r or q       \n");
 	printf("\033[A"); // one line up
 }
 
@@ -526,6 +526,11 @@ int main(int argc, char *argv[])
 		case 66:  // down arrow
 			success = moveDown(board, &score);
 			break;
+		case 53:  // '5' key
+		case 114: // 'r' key
+		case 117: // 'u' key
+			rotateBoard(board);
+			drawBoard(board, scheme, score);
 		default:
 			success = false;
 		}
@@ -551,7 +556,7 @@ int main(int argc, char *argv[])
 			}
 			drawBoard(board, scheme, score);
 		}
-		if (c == 'r')
+		if (c == 'n')
 		{
 			printf("       RESTART? (y/n)       \n");
 			c = getchar();
