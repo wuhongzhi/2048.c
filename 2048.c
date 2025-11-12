@@ -436,6 +436,57 @@ void signal_callback_handler(int signum)
 	exit(signum);
 }
 
+typedef enum
+{
+	UP,
+	DOWN,
+	LEFT,
+	RIGHT,
+	ROTATE,
+	OTHER
+} key_map_t;
+
+key_map_t key_map(char c, bool termux)
+{
+	switch (c)
+	{
+	case 52:  // '4' key
+	case 97:  // 'a' key
+	case 104: // 'h' key
+	case 68:  // left arrow
+		return LEFT;
+
+	case 54:  // '6' key
+	case 100: // 'd' key
+	case 108: // 'l' key
+	case 67:  // right arrow
+		return RIGHT;
+
+	case 56: // '8' key
+		if (termux)
+			return DOWN;
+	case 119: // 'w' key
+	case 107: // 'k' key
+	case 65:  // up arrow
+		return UP;
+
+	case 50: // '2' key
+		if (termux)
+			return UP;
+	case 115: // 's' key
+	case 106: // 'j' key
+	case 66:  // down arrow
+		return DOWN;
+
+	case 53:  // '5' key
+	case 114: // 'r' key
+	case 117: // 'u' key
+		return ROTATE;
+	default:
+		return OTHER;
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	uint8_t board[SIZE][SIZE];
@@ -443,6 +494,7 @@ int main(int argc, char *argv[])
 	uint32_t score = 0;
 	int c;
 	bool success;
+	bool termux;
 
 	// handle the command line options
 	if (argc > 1)
@@ -483,6 +535,8 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	termux = getenv("TERMUX__PREFIX") != NULL ? true : false;
+
 	// make cursor invisible, erase entire screen
 	printf("\033[?25l\033[2J");
 
@@ -492,6 +546,7 @@ int main(int argc, char *argv[])
 	initBoard(board);
 	setBufferedInput(false);
 	drawBoard(board, scheme, score);
+
 	while (true)
 	{
 		c = getchar();
@@ -500,38 +555,24 @@ int main(int argc, char *argv[])
 			puts("\nError! Cannot read keyboard input!");
 			break;
 		}
-		switch (c)
+		switch (key_map(c, termux))
 		{
-		case 52:  // '4' key
-		case 97:  // 'a' key
-		case 104: // 'h' key
-		case 68:  // left arrow
+		case LEFT:
 			success = moveLeft(board, &score);
 			break;
-		case 54:  // '6' key
-		case 100: // 'd' key
-		case 108: // 'l' key
-		case 67:  // right arrow
+		case RIGHT:
 			success = moveRight(board, &score);
 			break;
-		case 56:  // '8' key
-		case 119: // 'w' key
-		case 107: // 'k' key
-		case 65:  // up arrow
+		case UP:
 			success = moveUp(board, &score);
 			break;
-		case 50:  // '2' key
-		case 115: // 's' key
-		case 106: // 'j' key
-		case 66:  // down arrow
+		case DOWN:
 			success = moveDown(board, &score);
 			break;
-		case 53:  // '5' key
-		case 114: // 'r' key
-		case 117: // 'u' key
+		case ROTATE:
 			rotateBoard(board);
 			drawBoard(board, scheme, score);
-		default:
+		case OTHER:
 			success = false;
 		}
 		if (success)
