@@ -597,7 +597,7 @@ int main(int argc, char *argv[])
 			}
 			drawBoard(board, scheme, score);
 		}
-		if (c == 'n')
+		else if (c == 'n')
 		{
 			printf("       RESTART? (y/n)       \n");
 			c = getchar();
