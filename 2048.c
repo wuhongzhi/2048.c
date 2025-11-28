@@ -19,7 +19,32 @@
 #include <time.h>		  // defines: time
 #include <signal.h>		  // defines: signal, SIGINT
 
+#if defined(SIZE) && ((SIZE < 4) || (SIZE > 9))
+#warning "The board ranges from 4x4 to 9x9, default to 4x4"
+#undef SIZE
+#endif
+#ifndef SIZE
 #define SIZE 4
+#endif
+
+#define ROW_WIDTH SIZE * 7
+
+#define PRINT_TITLE(score)                                        \
+	do                                                            \
+	{                                                             \
+		char fmt[48];                                             \
+		sprintf(fmt, "\n2048.c %%%du pts\n\n\0", ROW_WIDTH - 11); \
+		printf(fmt, score);                                       \
+	} while (0)
+
+#define PRINT_FOOT(str, len)                   \
+	do                                         \
+	{                                          \
+		char pad[ROW_WIDTH];                   \
+		memset(pad, ' ', ROW_WIDTH);           \
+		pad[(ROW_WIDTH - len + 1) / 2] = '\0'; \
+		printf("\n%s%s%s", pad, str, pad);     \
+	} while (0)
 
 // this function receives 2 pointers (indicated by *) so it can set their values
 void getColors(uint8_t value, uint8_t scheme, uint8_t *foreground, uint8_t *background)
@@ -49,7 +74,7 @@ void drawBoard(uint8_t board[SIZE][SIZE], uint8_t scheme, uint32_t score)
 {
 	uint8_t x, y, fg, bg;
 	printf("\033[H"); // move cursor to 0,0
-	printf("2048.c %17u pts\n\n", score);
+	PRINT_TITLE(score);
 	for (y = 0; y < SIZE; y++)
 	{
 		for (x = 0; x < SIZE; x++)
@@ -88,12 +113,11 @@ void drawBoard(uint8_t board[SIZE][SIZE], uint8_t scheme, uint32_t score)
 		}
 		printf("\n");
 	}
-	printf("\n");
-	printf("       ←,↑,→,↓,r or q       \n");
+	PRINT_FOOT("←,↑,→,↓,r or q", 14);
 	printf("\033[A"); // one line up
 }
 
-uint8_t findTarget(uint8_t array[SIZE], uint8_t x, uint8_t stop)
+uint8_t findTarget(uint8_t *array, uint8_t x, uint8_t stop)
 {
 	uint8_t t;
 	// if the position is already on the first, don't evaluate
@@ -125,12 +149,12 @@ uint8_t findTarget(uint8_t array[SIZE], uint8_t x, uint8_t stop)
 	return x;
 }
 
-bool slideArray(uint8_t array[SIZE], uint32_t *score)
+bool slideArray(uint8_t *array, uint32_t *score, uint8_t size)
 {
 	bool success = false;
 	uint8_t x, t, stop = 0;
 
-	for (x = 0; x < SIZE; x++)
+	for (x = 0; x < size; x++)
 	{
 		if (array[x] != 0)
 		{
@@ -183,7 +207,7 @@ bool moveUp(uint8_t board[SIZE][SIZE], uint32_t *score)
 	uint8_t x;
 	for (x = 0; x < SIZE; x++)
 	{
-		success |= slideArray(board[x], score);
+		success |= slideArray(board[x], score, SIZE);
 	}
 	return success;
 }
@@ -347,9 +371,10 @@ void setBufferedInput(bool enable)
 	}
 }
 
+#define TEST_SIZE 4
 bool testSucceed()
 {
-	uint8_t array[SIZE];
+	uint8_t array[TEST_SIZE];
 	// these are exponents with base 2 (1=2 2=4 3=8)
 	// data holds per line: 4x IN, 4x OUT, 1x POINTS
 	uint8_t data[] = {
@@ -372,19 +397,19 @@ bool testSucceed()
 	bool success = true;
 	uint32_t score;
 
-	tests = (sizeof(data) / sizeof(data[0])) / (2 * SIZE + 1);
+	tests = (sizeof(data) / sizeof(data[0])) / (2 * TEST_SIZE + 1);
 	for (t = 0; t < tests; t++)
 	{
-		in = data + t * (2 * SIZE + 1);
-		out = in + SIZE;
-		points = in + 2 * SIZE;
-		for (i = 0; i < SIZE; i++)
+		in = data + t * (2 * TEST_SIZE + 1);
+		out = in + TEST_SIZE;
+		points = in + 2 * TEST_SIZE;
+		for (i = 0; i < TEST_SIZE; i++)
 		{
 			array[i] = in[i];
 		}
 		score = 0;
-		slideArray(array, &score);
-		for (i = 0; i < SIZE; i++)
+		slideArray(array, &score, TEST_SIZE);
+		for (i = 0; i < TEST_SIZE; i++)
 		{
 			if (array[i] != out[i])
 			{
@@ -397,22 +422,22 @@ bool testSucceed()
 		}
 		if (success == false)
 		{
-			for (i = 0; i < SIZE; i++)
+			for (i = 0; i < TEST_SIZE; i++)
 			{
 				printf("%u ", in[i]);
 			}
 			printf("=> ");
-			for (i = 0; i < SIZE; i++)
+			for (i = 0; i < TEST_SIZE; i++)
 			{
 				printf("%u ", array[i]);
 			}
 			printf("(%u points) expected ", score);
-			for (i = 0; i < SIZE; i++)
+			for (i = 0; i < TEST_SIZE; i++)
 			{
 				printf("%u ", in[i]);
 			}
 			printf("=> ");
-			for (i = 0; i < SIZE; i++)
+			for (i = 0; i < TEST_SIZE; i++)
 			{
 				printf("%u ", out[i]);
 			}
@@ -429,10 +454,10 @@ bool testSucceed()
 
 void signal_callback_handler(int signum)
 {
-	printf("         TERMINATED         \n");
+	PRINT_FOOT("TERMINATED", 10);
 	setBufferedInput(true);
 	// make cursor visible, reset all modes
-	printf("\033[?25h\033[m");
+	printf("\033[?25h\033[m\n");
 	exit(signum);
 }
 
@@ -583,13 +608,13 @@ int main(int argc, char *argv[])
 			drawBoard(board, scheme, score);
 			if (gameEnded(board))
 			{
-				printf("         GAME OVER          \n");
+				PRINT_FOOT("GAME OVER", 9);
 				break;
 			}
 		}
 		if (c == 'q')
 		{
-			printf("        QUIT? (y/n)         \n");
+			PRINT_FOOT("QUIT? (y/n)", 11);
 			c = getchar();
 			if (c == 'y')
 			{
@@ -599,7 +624,7 @@ int main(int argc, char *argv[])
 		}
 		else if (c == 'n')
 		{
-			printf("       RESTART? (y/n)       \n");
+			PRINT_FOOT("RESTART? (y/n)", 14);
 			c = getchar();
 			if (c == 'y')
 			{
