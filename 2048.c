@@ -27,14 +27,16 @@
 #define SIZE 4
 #endif
 
-#define ROW_WIDTH SIZE * 7
+#define ROW_WIDTH (SIZE * 7)
 
-#define PRINT_TITLE(score)                                        \
-	do                                                            \
-	{                                                             \
-		char fmt[48];                                             \
-		sprintf(fmt, "\n2048.c %%%du pts\n\n\0", ROW_WIDTH - 11); \
-		printf(fmt, score);                                       \
+#define PRINT_HEAD(score)                                  \
+	do                                                     \
+	{                                                      \
+		char fmt[48];                                      \
+		uint8_t len = ROW_WIDTH - 11;                      \
+		len = sprintf(fmt, "\n2048.c %%%du pts\n\n", len); \
+		fmt[len] = '\0';                                   \
+		printf(fmt, score);                                \
 	} while (0)
 
 #define PRINT_FOOT(str, len)                   \
@@ -74,7 +76,7 @@ void drawBoard(uint8_t board[SIZE][SIZE], uint8_t scheme, uint32_t score)
 {
 	uint8_t x, y, fg, bg;
 	printf("\033[H"); // move cursor to 0,0
-	PRINT_TITLE(score);
+	PRINT_HEAD(score);
 	for (y = 0; y < SIZE; y++)
 	{
 		for (x = 0; x < SIZE; x++)
@@ -637,7 +639,7 @@ int main(int argc, char *argv[])
 	setBufferedInput(true);
 
 	// make cursor visible, reset all modes
-	printf("\033[?25h\033[m");
+	printf("\033[?25h\033[m\n");
 
 	return EXIT_SUCCESS;
 }
